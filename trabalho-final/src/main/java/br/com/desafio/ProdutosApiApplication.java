@@ -1,4 +1,3 @@
-﻿
 package br.com.desafio;
  
 import org.springframework.boot.SpringApplication;
