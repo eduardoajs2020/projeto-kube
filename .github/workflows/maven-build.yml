@@ -1,10 +1,16 @@
 name: CI - Maven Build
 
+# Run on pushes and PRs; Docker push & release only run on pushes to main
 on:
   push:
     branches: ["**"]
   pull_request:
     branches: ["**"]
+
+# Permissions required to push images to GHCR and create releases
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   build:
@@ -38,3 +44,66 @@ jobs:
         with:
           name: produtos-api-jar
           path: trabalho-final/target/*.jar
+
+  publish:
+    name: Build & Publish Docker image + Release
+    runs-on: ubuntu-latest
+    needs: build
+    # only publish on pushes to main
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Get project version
+        id: get_version
+        run: |
+          version=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image to GHCR
+        uses: docker/build-push-action@v4
+        with:
+          context: ./trabalho-final
+          file: ./trabalho-final/docker/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/produtos-api:${{ steps.get_version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/produtos-api:latest
+            ghcr.io/${{ github.repository_owner }}/produtos-api:${{ github.sha }}
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          release_name: produtos-api v${{ steps.get_version.outputs.version }}
+          body: "Release created by CI: produtos-api v${{ steps.get_version.outputs.version }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload JAR to Release
+        uses: softprops/action-upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: trabalho-final/target/produtos-api.jar
+          asset_name: produtos-api-${{ steps.get_version.outputs.version }}.jar
+          asset_content_type: application/java-archive
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
