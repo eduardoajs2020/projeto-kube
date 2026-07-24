@@ -1,0 +1,72 @@
+﻿
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+
+  name: produtos-api
+
+  labels:
+
+    app: produtos-api
+
+spec:
+
+  replicas: 2
+
+
+  strategy:
+
+    type: RollingUpdate
+
+    rollingUpdate:
+
+      maxUnavailable: 1
+
+      maxSurge: 1
+
+
+  selector:
+
+    matchLabels:
+
+      app: produtos-api
+
+
+  template:
+
+    metadata:
+
+      labels:
+
+        app: produtos-api
+
+    spec:
+
+      containers:
+
+        - name: produtos-api
+
+          image: produtos-api:v1
+
+          imagePullPolicy: Never
+
+          ports:
+
+            - containerPort: 8080
+
+          env:
+
+            - name: SPRING_DATASOURCE_URL
+
+              value: jdbc:postgresql://postgres:5432/produtosdb
+
+            - name: SPRING_DATASOURCE_USERNAME
+
+              value: admin
+
+            - name: SPRING_DATASOURCE_PASSWORD
+
+              value: admin123
+
