@@ -1,4 +1,3 @@
-﻿
 package br.com.desafio.model;
  
 import jakarta.persistence.Entity;
