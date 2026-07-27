@@ -73,6 +73,15 @@ jobs:
           version=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
           echo "version=$version" >> $GITHUB_OUTPUT
 
+      - name: Check if tag already exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.get_version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -93,6 +102,7 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
+        if: steps.check_tag.outputs.exists == 'false'
         uses: actions/create-release@v1
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
@@ -104,6 +114,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload JAR to Release
+        if: steps.check_tag.outputs.exists == 'false'
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -129,7 +140,7 @@ jobs:
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: trabalho-final/docs
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
