@@ -54,6 +54,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -133,9 +136,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          fetch-tags: true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
